@@ -18,8 +18,8 @@ async function main() {
     throw new Error("createSvg não foi exportado corretamente.");
   }
 
-  if (!presets || presets.welcome.length !== 10 || presets.goodbye.length !== 10 || presets.music.length !== 10) {
-    throw new Error("Presets esperados: 10 welcome, 10 goodbye e 10 music.");
+  if (!presets || presets.welcome.length !== 11 || presets.goodbye.length !== 11 || presets.music.length !== 11) {
+    throw new Error("Presets esperados: 11 welcome, 11 goodbye e 11 music.");
   }
 
   const rows = parseCsvInput("name,group\nLucas,Grupo Oficial\n", {

@@ -176,6 +176,7 @@ async function prepareMediaForSvg(media, tmpDir, label) {
 async function prepareCardMedia(card, tmpDir) {
   return {
     ...card,
+    logo: await prepareMediaForSvg(card.logo, tmpDir, "logo"),
     avatar: await prepareMediaForSvg(card.avatar, tmpDir, "avatar"),
     thumbnail: await prepareMediaForSvg(card.thumbnail, tmpDir, "thumbnail")
   };

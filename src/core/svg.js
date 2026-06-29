@@ -368,7 +368,10 @@ function addTexts(parts, textConfig) {
           "font-size": size,
           "font-family": fontFamily,
           "font-weight": fontWeight,
-          "fill-opacity": clamp(entry.shadow.opacity ?? 0.55, 0, 1)
+          "fill-opacity": clamp(entry.shadow.opacity ?? 0.55, 0, 1),
+          "text-anchor": entry.anchor || undefined,
+          "letter-spacing": entry.letterSpacing || undefined,
+          "font-style": entry.fontStyle || undefined
         }, line));
       }
 
@@ -378,7 +381,11 @@ function addTexts(parts, textConfig) {
         fill: entry.color || "#ffffff",
         "font-size": size,
         "font-family": fontFamily,
-        "font-weight": fontWeight
+        "font-weight": fontWeight,
+        "fill-opacity": clamp(entry.opacity ?? 1, 0, 1),
+        "text-anchor": entry.anchor || undefined,
+        "letter-spacing": entry.letterSpacing || undefined,
+        "font-style": entry.fontStyle || undefined
       }, line));
     }
   }
@@ -405,6 +412,7 @@ function createSvg(config = {}) {
   addBackground(parts, config);
   addDecorations(parts, config.decorations);
   addPanel(parts, config.panel);
+  addMedia(parts, config.logo, "logo");
   addMedia(parts, config.avatar, "avatar");
   addMedia(parts, config.thumbnail, "thumbnail");
   addProgress(parts, config.progress);

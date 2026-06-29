@@ -87,12 +87,121 @@ const layouts = [
     subtitle: { x: 50, y: 150, size: 21 },
     message: { x: 50, y: 194, size: 18, maxChars: 60 },
     footer: { x: 624, y: 232, size: 15 }
+  },
+  {
+    panel: { enabled: false, x: 0, y: 0, width: 800, height: 320, radius: 0 },
+    avatar: { enabled: true, x: 290, y: 20, size: 220, shape: "circle", borderWidth: 0 },
+    title: { x: 400, y: 266, size: 34, anchor: "middle", letterSpacing: 1 },
+    subtitle: { x: 400, y: 306, size: 20, anchor: "middle" },
+    message: { enabled: false, x: 0, y: 0, size: 0 },
+    footer: { x: 780, y: 298, size: 20, anchor: "end", letterSpacing: 1 }
   }
 ];
 
 function createPreset(index, layout) {
   const theme = getPalette(index);
   const id = `welcome-${String(index).padStart(2, "0")}`;
+
+  if (index === 11) {
+    return {
+      id,
+      kind: "welcome",
+      theme: "center-stage",
+      width: 800,
+      height: 320,
+      output: {
+        format: "png",
+        quality: 92,
+        returnType: "file"
+      },
+      optimization: {
+        mode: "balanced",
+        stripMetadata: true,
+        compressionLevel: 7,
+        progressive: true
+      },
+      background: {
+        color: "#0b1020",
+        imagePath: null
+      },
+      decorations: [],
+      panel: {
+        enabled: false
+      },
+      accentColor: "#ffffff",
+      logo: {
+        enabled: false,
+        path: null,
+        x: 22,
+        y: 16,
+        width: 90,
+        height: 64,
+        radius: 0
+      },
+      avatar: {
+        enabled: true,
+        path: null,
+        x: 290,
+        y: 20,
+        size: 220,
+        shape: "circle",
+        borderWidth: 0
+      },
+      text: {
+        title: {
+          value: "BEM-VINDO [A]",
+          x: 400,
+          y: 266,
+          size: 34,
+          anchor: "middle",
+          color: "#ffffff",
+          weight: 800,
+          letterSpacing: 1,
+          shadow: {
+            enabled: true,
+            opacity: 0.65
+          }
+        },
+        subtitle: {
+          value: "Nome do membro",
+          x: 400,
+          y: 304,
+          size: 20,
+          anchor: "middle",
+          color: "#f3f4f6"
+        },
+        message: {
+          enabled: false
+        },
+        footer: {
+          value: "#SEUGRUPO",
+          x: 780,
+          y: 298,
+          size: 20,
+          anchor: "end",
+          color: "#ffffff",
+          weight: 800,
+          letterSpacing: 1,
+          shadow: {
+            enabled: true,
+            opacity: 0.65
+          }
+        },
+        brand: {
+          value: "SEU LOGO / MARCA",
+          x: 28,
+          y: 40,
+          size: 18,
+          color: "#ffffff",
+          weight: 700,
+          shadow: {
+            enabled: true,
+            opacity: 0.5
+          }
+        }
+      }
+    };
+  }
 
   return {
     id,

@@ -97,12 +97,152 @@ const layouts = [
     artist: { x: 50, y: 150, size: 21 },
     duration: { x: 50, y: 192, size: 18 },
     footer: { x: 640, y: 232, size: 15 }
+  },
+  {
+    panel: { x: 108, y: 58, width: 584, height: 206, radius: 36 },
+    thumbnail: { enabled: true, x: 130, y: 80, width: 158, height: 158, radius: 28 },
+    progress: { x: 334, y: 202, width: 266, height: 10 },
+    title: { x: 334, y: 118, size: 30 },
+    artist: { x: 372, y: 156, size: 22 },
+    duration: { enabled: false, x: 0, y: 0, size: 0 },
+    footer: { enabled: false, x: 0, y: 0, size: 0 }
   }
 ];
 
 function createPreset(index, layout) {
   const theme = getPalette(index);
   const id = `music-${String(index).padStart(2, "0")}`;
+
+  if (index === 11) {
+    return {
+      id,
+      kind: "music",
+      theme: "bloom",
+      width: 800,
+      height: 320,
+      output: {
+        format: "png",
+        quality: 92,
+        returnType: "file"
+      },
+      optimization: {
+        mode: "balanced",
+        stripMetadata: true,
+        compressionLevel: 7,
+        progressive: true
+      },
+      background: {
+        color: "#151515",
+        imagePath: null
+      },
+      decorations: [
+        {
+          type: "rect",
+          x: 334,
+          y: 136,
+          width: 28,
+          height: 28,
+          radius: 8,
+          color: "#000000",
+          opacity: 1
+        }
+      ],
+      panel: {
+        x: 108,
+        y: 58,
+        width: 584,
+        height: 206,
+        radius: 36,
+        color: "#f7f7f7",
+        opacity: 1,
+        borderColor: "none",
+        borderWidth: 0
+      },
+      accentColor: "#000000",
+      thumbnail: {
+        enabled: true,
+        path: null,
+        x: 130,
+        y: 80,
+        width: 158,
+        height: 158,
+        radius: 28,
+        borderWidth: 0
+      },
+      progress: {
+        enabled: true,
+        progress: 0.34,
+        x: 334,
+        y: 202,
+        width: 266,
+        height: 10,
+        backgroundColor: "#dddddd",
+        fillColor: "#000000"
+      },
+      text: {
+        title: {
+          value: "Blinding Lights",
+          x: 334,
+          y: 118,
+          size: 30,
+          color: "#111111",
+          weight: 700
+        },
+        artist: {
+          value: "The Weeknd",
+          x: 372,
+          y: 156,
+          size: 22,
+          color: "#222222"
+        },
+        duration: {
+          enabled: false
+        },
+        footer: {
+          enabled: false
+        },
+        explicitBadge: {
+          value: "E",
+          x: 348,
+          y: 156,
+          size: 16,
+          anchor: "middle",
+          color: "#ffffff",
+          weight: 800
+        },
+        timeStart: {
+          value: "0:00",
+          x: 334,
+          y: 242,
+          size: 18,
+          color: "#222222"
+        },
+        timeEnd: {
+          value: "2:54",
+          x: 604,
+          y: 242,
+          size: 18,
+          anchor: "end",
+          color: "#222222"
+        },
+        themeLabel: {
+          value: "[theme]",
+          x: 32,
+          y: 264,
+          size: 20,
+          color: "#6b7280"
+        },
+        themeName: {
+          value: "bloom",
+          x: 32,
+          y: 300,
+          size: 34,
+          color: "#ffffff",
+          weight: 800
+        }
+      }
+    };
+  }
 
   return {
     id,

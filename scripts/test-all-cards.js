@@ -65,7 +65,6 @@ function getTextOverride(family, index) {
     return {
       title: {
         value: `Música teste ${index}`,
-        color: "#ffffff",
         shadow: {
           enabled: true
         }
@@ -86,7 +85,6 @@ function getTextOverride(family, index) {
     return {
       title: {
         value: `Até logo ${index}`,
-        color: "#ffffff",
         shadow: {
           enabled: true
         }
@@ -107,7 +105,6 @@ function getTextOverride(family, index) {
   return {
     title: {
       value: `Bem-vindo ${index}`,
-      color: "#ffffff",
       shadow: {
         enabled: true
       }
@@ -131,7 +128,7 @@ async function renderPresetFamily(family) {
   const results = [];
 
   assert(Array.isArray(list), `Presets ausentes para ${family}.`);
-  assert(list.length === 10, `Esperado 10 presets em ${family}, recebido ${list.length}.`);
+  assert(list.length === 11, `Esperado 11 presets em ${family}, recebido ${list.length}.`);
 
   for (let index = 0; index < list.length; index += 1) {
     const preset = list[index];

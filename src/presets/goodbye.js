@@ -1,6 +1,7 @@
 const welcomePresets = require("./welcome");
 
 module.exports = welcomePresets.map((preset) => {
+  const isCenterStage = preset.theme === "center-stage";
   const number = preset.id.split("-")[1];
 
   return {
@@ -11,16 +12,18 @@ module.exports = welcomePresets.map((preset) => {
       ...preset.text,
       title: {
         ...preset.text.title,
-        value: "Até logo!"
+        value: isCenterStage ? "ATÉ LOGO [A]" : "Até logo!"
       },
       subtitle: {
         ...preset.text.subtitle,
-        value: "Um membro saiu",
+        value: isCenterStage ? "Nome do membro" : "Um membro saiu",
         color: preset.accentColor
       },
       message: {
         ...preset.text.message,
-        value: "Volte quando quiser. Obrigado por ter participado."
+        value: isCenterStage
+          ? ""
+          : "Volte quando quiser. Obrigado por ter participado."
       }
     }
   };
