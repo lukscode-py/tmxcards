@@ -297,12 +297,8 @@ function dynamicExamples() {
   ];
 }
 
-function convertSvgToPng(svgPath, pngPath, width, height) {
+function convertSvgToPng(svgPath, pngPath) {
   const result = spawnSync("rsvg-convert", [
-    "-w",
-    String(width),
-    "-h",
-    String(height),
     "-o",
     pngPath,
     svgPath
@@ -350,7 +346,7 @@ async function generateOne(entry) {
   const width = Number(result.width || card.width || config.width || 900);
   const height = Number(result.height || card.height || config.height || 360);
 
-  convertSvgToPng(svgPath, pngPath, width, height);
+  convertSvgToPng(svgPath, pngPath);
 
   const info = {
     id: entry.id,

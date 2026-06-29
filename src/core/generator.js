@@ -59,6 +59,43 @@ function getMime(format) {
   return "application/octet-stream";
 }
 
+function readSvgDimension(value) {
+  const match = String(value || "").trim().match(/^([0-9]+(?:\.[0-9]+)?)/);
+  if (!match) return null;
+
+  const number = Number(match[1]);
+  return Number.isFinite(number) && number > 0 ? Math.round(number) : null;
+}
+
+function getSvgSize(svg, fallbackWidth, fallbackHeight) {
+  const openTag = String(svg || "").match(/<svg\b[^>]*>/i)?.[0] || "";
+
+  const width = readSvgDimension(openTag.match(/\bwidth="([^"]+)"/i)?.[1]);
+  const height = readSvgDimension(openTag.match(/\bheight="([^"]+)"/i)?.[1]);
+
+  if (width && height) {
+    return { width, height };
+  }
+
+  const viewBox = openTag.match(/\bviewBox="([^"]+)"/i)?.[1];
+  const parts = String(viewBox || "")
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number);
+
+  if (parts.length === 4 && Number.isFinite(parts[2]) && Number.isFinite(parts[3]) && parts[2] > 0 && parts[3] > 0) {
+    return {
+      width: Math.round(parts[2]),
+      height: Math.round(parts[3])
+    };
+  }
+
+  return {
+    width: toPositiveInteger(fallbackWidth, 800),
+    height: toPositiveInteger(fallbackHeight, 320)
+  };
+}
+
 function toPositiveInteger(value, fallback) {
   const number = Number(value);
   if (!Number.isFinite(number) || number <= 0) return fallback;
@@ -249,15 +286,21 @@ async function renderCard(config = {}, options = {}) {
 
   try {
     const svg = createCustomSvg(card) || createSvg(card);
+    const svgSize = getSvgSize(svg, card.width, card.height);
+    const svgCard = {
+      ...card,
+      width: svgSize.width,
+      height: svgSize.height
+    };
 
     if (format === "svg") {
-      return await outputRawContent(svg, card, format);
+      return await outputRawContent(svg, svgCard, format);
     }
 
     const svgPath = createTempName(tmpDir, "input", "svg");
     await fsp.writeFile(svgPath, svg);
 
-    return await convertSvgToPng(svgPath, card, tmpDir);
+    return await convertSvgToPng(svgPath, svgCard, tmpDir);
   } finally {
     if (!card.output || card.output.keepTemp !== true) {
       await fsp.rm(tmpDir, { recursive: true, force: true });
