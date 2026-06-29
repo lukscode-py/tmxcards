@@ -204,6 +204,51 @@ function addMedia(parts, media, label) {
 
   if (width <= 0 || height <= 0) return;
 
+  if (media.__tmxcardsPrepared === true) {
+    const originalShape = media.__tmxcardsOriginalShape || media.shape;
+    const originalRadius = toNumber(media.__tmxcardsOriginalRadius, radius);
+
+    parts.body.push(image({
+      href: fileToDataUri(media.path),
+      x,
+      y,
+      width,
+      height,
+      preserveAspectRatio: "none"
+    }));
+
+    if (toNumber(media.borderWidth, 0) > 0) {
+      if (originalShape === "circle") {
+        const cx = x + width / 2;
+        const cy = y + height / 2;
+        const r = Math.min(width, height) / 2;
+
+        parts.body.push(circle({
+          cx,
+          cy,
+          r: r - toNumber(media.borderWidth, 0) / 2,
+          fill: "none",
+          stroke: media.borderColor || "#ffffff",
+          "stroke-width": toNumber(media.borderWidth, 0)
+        }));
+      } else {
+        parts.body.push(rect({
+          x,
+          y,
+          width,
+          height,
+          rx: originalRadius,
+          ry: originalRadius,
+          fill: "none",
+          stroke: media.borderColor || "#ffffff",
+          "stroke-width": toNumber(media.borderWidth, 0)
+        }));
+      }
+    }
+
+    return;
+  }
+
   if (media.shape === "circle") {
     const cx = x + width / 2;
     const cy = y + height / 2;

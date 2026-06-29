@@ -61,6 +61,11 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, number));
 }
 
+function toNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 function createTempName(tmpDir, label, extension = "tmp") {
   const id = crypto.randomBytes(8).toString("hex");
   return path.join(tmpDir, `${label}-${id}.${extension}`);
@@ -77,6 +82,103 @@ async function runMagick(args) {
     const detail = [error.stderr, error.stdout, error.message].filter(Boolean).join("\n");
     throw new Error(`ImageMagick falhou.\nComando: ${command} ${args.join(" ")}\n${detail}`);
   }
+}
+
+async function prepareMediaForSvg(media, tmpDir, label) {
+  if (!media || media.enabled === false || !exists(media.path)) return media;
+
+  const width = toNumber(media.width || media.size, 160);
+  const height = toNumber(media.height || media.size, width);
+  const shape = media.shape;
+  const radius = toNumber(media.radius, shape === "circle" ? Math.min(width, height) / 2 : 0);
+
+  if (width <= 0 || height <= 0) return media;
+
+  const resized = createTempName(tmpDir, `${label}-resized`, "png");
+  const prepared = createTempName(tmpDir, `${label}-prepared`, "png");
+
+  await runMagick([
+    media.path,
+    "-auto-orient",
+    "-resize",
+    `${width}x${height}^`,
+    "-gravity",
+    "center",
+    "-extent",
+    `${width}x${height}`,
+    `PNG32:${resized}`
+  ]);
+
+  if (shape !== "circle" && radius <= 0) {
+    return {
+      ...media,
+      width,
+      height,
+      path: resized,
+      __tmxcardsPrepared: true,
+      __tmxcardsOriginalShape: shape,
+      __tmxcardsOriginalRadius: radius
+    };
+  }
+
+  const mask = createTempName(tmpDir, `${label}-mask`, "png");
+
+  if (shape === "circle") {
+    const cx = Math.round(width / 2);
+    const cy = Math.round(height / 2);
+    const edgeY = Math.max(0, cy - Math.round(Math.min(width, height) / 2));
+
+    await runMagick([
+      "-size",
+      `${width}x${height}`,
+      "xc:none",
+      "-fill",
+      "white",
+      "-draw",
+      `circle ${cx},${cy} ${cx},${edgeY}`,
+      `PNG32:${mask}`
+    ]);
+  } else {
+    await runMagick([
+      "-size",
+      `${width}x${height}`,
+      "xc:none",
+      "-fill",
+      "white",
+      "-draw",
+      `roundrectangle 0,0 ${width - 1},${height - 1} ${radius},${radius}`,
+      `PNG32:${mask}`
+    ]);
+  }
+
+  await runMagick([
+    resized,
+    mask,
+    "-alpha",
+    "Off",
+    "-compose",
+    "CopyOpacity",
+    "-composite",
+    `PNG32:${prepared}`
+  ]);
+
+  return {
+    ...media,
+    width,
+    height,
+    path: prepared,
+    __tmxcardsPrepared: true,
+    __tmxcardsOriginalShape: shape,
+    __tmxcardsOriginalRadius: radius
+  };
+}
+
+async function prepareCardMedia(card, tmpDir) {
+  return {
+    ...card,
+    avatar: await prepareMediaForSvg(card.avatar, tmpDir, "avatar"),
+    thumbnail: await prepareMediaForSvg(card.thumbnail, tmpDir, "thumbnail")
+  };
 }
 
 function resolveOutputPath(outputConfig, format) {
@@ -231,18 +333,19 @@ async function renderCard(config = {}, options = {}) {
   const card = merge(merge(DEFAULT_CARD, config), options);
   const outputConfig = card.output || {};
   const format = normalizeFormat(outputConfig.format);
-  const svg = createSvg(card);
-
-  if (format === "svg") {
-    return outputRawContent(svg, card, format);
-  }
-
   const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), "tmxcards-"));
 
   try {
+    const svgCard = await prepareCardMedia(card, tmpDir);
+    const svg = createSvg(svgCard);
+
+    if (format === "svg") {
+      return await outputRawContent(svg, svgCard, format);
+    }
+
     const svgPath = createTempName(tmpDir, "input", "svg");
     await fsp.writeFile(svgPath, svg);
-    return await convertSvg(svgPath, card, tmpDir, format);
+    return await convertSvg(svgPath, svgCard, tmpDir, format);
   } finally {
     if (!card.output || card.output.keepTemp !== true) {
       await fsp.rm(tmpDir, { recursive: true, force: true });

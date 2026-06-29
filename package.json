@@ -16,7 +16,8 @@
     "check:load": "node -e \"require('./src')\"",
     "example:welcome": "node examples/basic-welcome.js",
     "example:music": "node examples/basic-music.js",
-    "example:csv": "node examples/basic-csv.js"
+    "example:csv": "node examples/basic-csv.js",
+    "test:cards": "node scripts/test-all-cards.js"
   },
   "keywords": [
     "cards",
