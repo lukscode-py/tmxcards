@@ -1,6 +1,6 @@
 {
   "name": "tmxcards",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Gerador leve de cards via SVG e rsvg-convert para bots e automações, focado em Termux, Linux e Windows.",
   "main": "src/index.js",
   "type": "commonjs",
