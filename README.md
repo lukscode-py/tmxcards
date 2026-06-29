@@ -420,7 +420,7 @@ const card = createCard("welcome/dark", {
 
 ### `welcome/dark`
 
-<img src="./docs/previews/welcome-dark.png" width="470" alt="welcome/dark" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/welcome-dark.png" width="470" alt="welcome/dark" />
 
 Card escuro minimalista para entrada de usuário em grupo. Ideal para bot de WhatsApp, Discord ou painel de comunidade.
 
@@ -472,7 +472,7 @@ Campos úteis:
 
 ### `welcome/premium`
 
-<img src="./docs/previews/welcome-premium.png" width="470" alt="welcome/premium" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/welcome-premium.png" width="470" alt="welcome/premium" />
 
 Card de boas-vindas em layout premium, maior e mais detalhado.
 
@@ -504,7 +504,7 @@ const card = createCard("welcome/premium", {
 
 ### `welcome/light`
 
-<img src="./docs/previews/welcome-light.png" width="470" alt="welcome/light" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/welcome-light.png" width="470" alt="welcome/light" />
 
 Variação clara do card de boas-vindas, útil quando o bot usa identidade visual limpa.
 
@@ -520,7 +520,7 @@ const card = createCard("welcome/light", {
 
 ### `welcome/midnight`
 
-<img src="./docs/previews/welcome-midnight.png" width="470" alt="welcome/midnight" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/welcome-midnight.png" width="470" alt="welcome/midnight" />
 
 Card de boas-vindas com foco central, avatar grande e visual noturno.
 
@@ -552,7 +552,7 @@ const card = createCard("welcome/midnight", {
 
 ### `goodbye/dark`
 
-<img src="./docs/previews/goodbye-dark.png" width="470" alt="goodbye/dark" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/goodbye-dark.png" width="470" alt="goodbye/dark" />
 
 Versão de despedida do card escuro minimalista.
 
@@ -564,7 +564,7 @@ const card = createCard("goodbye/dark", {
 
 ### `goodbye/premium`
 
-<img src="./docs/previews/goodbye-premium.png" width="470" alt="goodbye/premium" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/goodbye-premium.png" width="470" alt="goodbye/premium" />
 
 Card premium para saída de usuário.
 
@@ -576,7 +576,7 @@ const card = createCard("goodbye/premium", {
 
 ### `goodbye/light`
 
-<img src="./docs/previews/goodbye-light.png" width="470" alt="goodbye/light" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/goodbye-light.png" width="470" alt="goodbye/light" />
 
 Variação clara para despedida.
 
@@ -588,7 +588,7 @@ const card = createCard("goodbye/light", {
 
 ### `goodbye/midnight`
 
-<img src="./docs/previews/goodbye-midnight.png" width="470" alt="goodbye/midnight" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/goodbye-midnight.png" width="470" alt="goodbye/midnight" />
 
 Card noturno centralizado para despedida.
 
@@ -602,7 +602,7 @@ const card = createCard("goodbye/midnight", {
 
 ### `rank/personal`
 
-<img src="./docs/previews/rank-personal.png" width="470" alt="rank/personal" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/rank-personal.png" width="470" alt="rank/personal" />
 
 Card pessoal de level e XP. Mostra nome, perfil, level, XP e barra de progresso.
 
@@ -636,7 +636,7 @@ Campos úteis:
 
 ### `rank/list`
 
-<img src="./docs/previews/rank-list.png" width="470" alt="rank/list" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/rank-list.png" width="470" alt="rank/list" />
 
 Card universal de ranking. Serve para top 3, top 10, placares, economia, mensagens, XP, level, staff, ranking de grupos e listas customizadas.
 
@@ -698,7 +698,7 @@ Campos úteis:
 
 ### `music/player`
 
-<img src="./docs/previews/music-player.png" width="470" alt="music/player" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/music-player.png" width="470" alt="music/player" />
 
 Card de música com capa, título, subtítulo, duração e barra de progresso.
 
@@ -718,7 +718,7 @@ const card = createCard("music/player", {
 
 ### `music/orbit`
 
-<img src="./docs/previews/music-orbit.png" width="470" alt="music/orbit" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/music-orbit.png" width="470" alt="music/orbit" />
 
 Card de música com capa circular/orbital e visual mais estilizado.
 
@@ -739,7 +739,7 @@ const card = createCard("music/orbit", {
 
 ### `moderation/ban`
 
-<img src="./docs/previews/moderation-ban.png" width="470" alt="moderation/ban" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/moderation-ban.png" width="470" alt="moderation/ban" />
 
 Card para banimento, punição ou alerta administrativo.
 
@@ -759,7 +759,7 @@ const card = createCard("moderation/ban", {
 
 ### `moderation/rank-change`
 
-<img src="./docs/previews/moderation-rank-change.png" width="470" alt="moderation/rank-change" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/moderation-rank-change.png" width="470" alt="moderation/rank-change" />
 
 Card para promoção, rebaixamento ou alteração de cargo.
 
@@ -793,7 +793,7 @@ Se você chamar `createCard()` com um ID que não está registrado, o pacote cri
 
 ### `custom/canvas-simple`
 
-<img src="./docs/previews/custom-canvas-simple.png" width="470" alt="custom/canvas-simple" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/custom-canvas-simple.png" width="470" alt="custom/canvas-simple" />
 
 ```js
 const card = createCard("custom/canvas-simple", {
@@ -818,7 +818,7 @@ const card = createCard("custom/canvas-simple", {
 
 ### `custom/profile-simple`
 
-<img src="./docs/previews/custom-profile-simple.png" width="470" alt="custom/profile-simple" />
+<img src="https://github.com/lukscode-py/tmxcards/raw/master/docs/previews/custom-profile-simple.png" width="470" alt="custom/profile-simple" />
 
 ```js
 const card = createCard("custom/profile-simple", {
