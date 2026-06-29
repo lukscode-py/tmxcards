@@ -6,14 +6,32 @@
   "type": "commonjs",
   "files": [
     "src",
-    "examples",
+    "examples/*.js",
+    "examples/assets",
     "scripts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "check": "node scripts/check.js",
-    "check:load": "node -e \"require('./src')\""
+    "check:load": "node -e \"require('./src')\"",
+    "example:welcome-premium-01": "node examples/welcome-premium-01.js",
+    "example:welcome-midnight-focus": "node examples/welcome-midnight-focus.js",
+    "example:orbit-mono-player": "node examples/orbit-mono-player.js",
+    "example:crimson-authority-ban": "node examples/crimson-authority-ban.js",
+    "example:rank-shift-notice": "node examples/rank-shift-notice.js",
+    "example:goodbye-premium-01": "node examples/goodbye-premium-01.js",
+    "example:goodbye-light-01": "node examples/goodbye-light-01.js",
+    "example:goodbye-midnight-focus": "node examples/goodbye-midnight-focus.js",
+    "example:universal-rank-card": "node examples/universal-rank-card.js",
+    "example:dark-minimal-welcome": "node examples/dark-minimal-welcome.js",
+    "example:dark-minimal-farewell": "node examples/dark-minimal-farewell.js",
+    "example:dark-minimal-xp-rank": "node examples/dark-minimal-xp-rank.js",
+    "example:create-card": "node examples/create-card.js",
+    "example:welcome-light-01": "node examples/welcome-light-01.js",
+    "example:music-midnight-mono-player": "node examples/music-midnight-mono-player.js",
+    "example:dynamic-card": "node examples/dynamic-card.js",
+    "example:all-cards": "node examples/generate-all-cards.js"
   },
   "keywords": [
     "cards",

@@ -1,5 +1,4 @@
-const fs = require("node:fs");
-const path = require("node:path");
+const { imageSource } = require("./image-source");
 
 function clamp(value, min, max) {
   const number = Number(value);
@@ -12,10 +11,6 @@ function toNumber(value, fallback) {
   return Number.isFinite(number) ? number : fallback;
 }
 
-function exists(filePath) {
-  return typeof filePath === "string" && filePath.length > 0 && fs.existsSync(filePath);
-}
-
 function escapeXml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -25,23 +20,6 @@ function escapeXml(value) {
 
 function escapeAttr(value) {
   return escapeXml(value).replaceAll('"', "&quot;");
-}
-
-function mimeFromPath(filePath) {
-  const extension = path.extname(filePath).toLowerCase();
-
-  if (extension === ".jpg" || extension === ".jpeg") return "image/jpeg";
-  if (extension === ".png") return "image/png";
-  if (extension === ".webp") return "image/webp";
-  if (extension === ".gif") return "image/gif";
-  if (extension === ".svg") return "image/svg+xml";
-
-  return "application/octet-stream";
-}
-
-function fileToDataUri(filePath) {
-  const buffer = fs.readFileSync(filePath);
-  return `data:${mimeFromPath(filePath)};base64,${buffer.toString("base64")}`;
 }
 
 function normalizeTextEntries(textConfig) {
@@ -109,10 +87,11 @@ function addBackground(parts, card) {
   const width = toNumber(card.width, 800);
   const height = toNumber(card.height, 320);
   const background = card.background || {};
+  const backgroundHref = imageSource(background);
 
-  if (exists(background.imagePath)) {
+  if (backgroundHref) {
     parts.body.push(image({
-      href: fileToDataUri(background.imagePath),
+      href: backgroundHref,
       x: 0,
       y: 0,
       width,
@@ -227,7 +206,9 @@ function addDecorations(parts, decorations) {
 }
 
 function addMedia(parts, media, label) {
-  if (!media || media.enabled === false || !exists(media.path)) return;
+  const href = imageSource(media);
+
+  if (!media || media.enabled === false || !href) return;
 
   const x = toNumber(media.x, 0);
   const y = toNumber(media.y, 0);
@@ -243,7 +224,7 @@ function addMedia(parts, media, label) {
     const originalRadius = toNumber(media.__tmxcardsOriginalRadius, radius);
 
     parts.body.push(image({
-      href: fileToDataUri(media.path),
+      href,
       x,
       y,
       width,
@@ -290,7 +271,7 @@ function addMedia(parts, media, label) {
 
     parts.defs.push(`<clipPath id="${clipId}">${circle({ cx, cy, r })}</clipPath>`);
     parts.body.push(image({
-      href: fileToDataUri(media.path),
+      href,
       x,
       y,
       width,
@@ -318,7 +299,7 @@ function addMedia(parts, media, label) {
   }
 
   parts.body.push(image({
-    href: fileToDataUri(media.path),
+    href,
     x,
     y,
     width,
