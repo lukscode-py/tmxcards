@@ -13,11 +13,7 @@
   ],
   "scripts": {
     "check": "node scripts/check.js",
-    "check:load": "node -e \"require('./src')\"",
-    "example:welcome": "node examples/basic-welcome.js",
-    "example:music": "node examples/basic-music.js",
-    "example:csv": "node examples/basic-csv.js",
-    "test:cards": "node scripts/test-all-cards.js"
+    "check:load": "node -e \"require('./src')\""
   },
   "keywords": [
     "cards",

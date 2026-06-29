@@ -1,9 +1,6 @@
 const {
-  parseCsvInput,
   renderCard,
   createSvg,
-  createWelcomeCard,
-  presets,
   resolveMagickCommand
 } = require("../src");
 
@@ -18,60 +15,47 @@ async function main() {
     throw new Error("createSvg não foi exportado corretamente.");
   }
 
-  if (!presets || presets.welcome.length !== 11 || presets.goodbye.length !== 11 || presets.music.length !== 11) {
-    throw new Error("Presets esperados: 11 welcome, 11 goodbye e 11 music.");
-  }
-
-  const rows = parseCsvInput("name,group\nLucas,Grupo Oficial\n", {
-    fromFile: false
-  });
-
-  if (rows.length !== 1 || rows[0].name !== "Lucas") {
-    throw new Error("parseCsvInput falhou ao ler CSV em memória.");
-  }
-
-  const card = createWelcomeCard({
-    width: 320,
-    height: 128,
-    avatar: {
-      enabled: false
+  const card = {
+    width: 420,
+    height: 180,
+    background: {
+      color: "#10131a"
     },
     panel: {
-      x: 8,
-      y: 8,
-      width: 304,
-      height: 112,
-      radius: 14
+      enabled: true,
+      x: 16,
+      y: 16,
+      width: 388,
+      height: 148,
+      radius: 18,
+      color: "#171d29",
+      opacity: 0.92
     },
     text: {
       title: {
-        value: "tmxcards check",
-        x: 24,
-        y: 30,
-        size: 22
+        value: "tmxcards core",
+        x: 36,
+        y: 54,
+        size: 28,
+        color: "#ffffff"
       },
       subtitle: {
-        value: "render ok",
-        x: 24,
-        y: 66,
-        size: 16
-      },
-      message: {
-        enabled: false
-      },
-      footer: {
-        enabled: false
+        value: "sem templates antigos",
+        x: 38,
+        y: 94,
+        size: 18,
+        color: "#cbd5e1"
       }
     },
     output: {
       format: "png",
       returnType: "buffer"
     }
-  });
+  };
 
   const svg = createSvg(card);
 
-  if (!svg.includes("<svg") || !svg.includes("tmxcards check")) {
+  if (!svg.includes("<svg") || !svg.includes("tmxcards core")) {
     throw new Error("createSvg não gerou SVG válido.");
   }
 
@@ -90,42 +74,19 @@ async function main() {
   const rendered = await renderCard(card);
 
   if (!rendered.ok || rendered.returnType !== "buffer" || !Buffer.isBuffer(rendered.buffer) || rendered.bytes <= 0) {
-    throw new Error("renderCard não retornou buffer válido.");
-  }
-
-  const premium = createWelcomeCard({
-    variant: "welcome-01",
-    output: {
-      format: "svg",
-      returnType: "buffer"
-    }
-  });
-
-  const premiumRendered = await renderCard(premium);
-
-  const premiumSvg = premiumRendered.buffer.toString("utf8");
-
-  if (!premiumRendered.ok || !premiumSvg.includes('data-renderer="welcome-premium-01"')) {
-    throw new Error("welcome-01 premium não foi renderizado pelo renderer dedicado.");
+    throw new Error("renderCard não retornou buffer PNG válido.");
   }
 
   console.log(JSON.stringify({
     ok: true,
     magick,
-    presets: {
-      welcome: presets.welcome.length,
-      goodbye: presets.goodbye.length,
-      music: presets.music.length
-    },
+    templates: 0,
     render: {
       format: rendered.format,
       bytes: rendered.bytes
     },
     svg: {
       bytes: svgRendered.bytes
-    },
-    premium: {
-      bytes: premiumRendered.bytes
     }
   }, null, 2));
 }
