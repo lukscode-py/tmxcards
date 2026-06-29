@@ -1,6 +1,7 @@
 const {
   parseCsvInput,
   renderCard,
+  createSvg,
   createWelcomeCard,
   presets,
   resolveMagickCommand
@@ -11,6 +12,10 @@ async function main() {
 
   if (typeof renderCard !== "function") {
     throw new Error("renderCard não foi exportado corretamente.");
+  }
+
+  if (typeof createSvg !== "function") {
+    throw new Error("createSvg não foi exportado corretamente.");
   }
 
   if (!presets || presets.welcome.length !== 10 || presets.goodbye.length !== 10 || presets.music.length !== 10) {
@@ -64,6 +69,24 @@ async function main() {
     }
   });
 
+  const svg = createSvg(card);
+
+  if (!svg.includes("<svg") || !svg.includes("tmxcards check")) {
+    throw new Error("createSvg não gerou SVG válido.");
+  }
+
+  const svgRendered = await renderCard({
+    ...card,
+    output: {
+      format: "svg",
+      returnType: "buffer"
+    }
+  });
+
+  if (!svgRendered.ok || svgRendered.format !== "svg" || !svgRendered.buffer.toString("utf8").includes("<svg")) {
+    throw new Error("renderCard não retornou SVG válido.");
+  }
+
   const rendered = await renderCard(card);
 
   if (!rendered.ok || rendered.returnType !== "buffer" || !Buffer.isBuffer(rendered.buffer) || rendered.bytes <= 0) {
@@ -81,6 +104,9 @@ async function main() {
     render: {
       format: rendered.format,
       bytes: rendered.bytes
+    },
+    svg: {
+      bytes: svgRendered.bytes
     }
   }, null, 2));
 }

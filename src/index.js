@@ -1,6 +1,7 @@
 const { resolveMagickCommand, getSupportedFormats } = require("./core/imagemagick");
 const { createCardsFromCsv, parseCsvInput, renderCardsFromCsv } = require("./core/csv");
 const { renderCard } = require("./core/generator");
+const { createSvg } = require("./core/svg");
 const { createWelcomeCard } = require("./templates/welcome");
 const { createGoodbyeCard } = require("./templates/goodbye");
 const { createMusicCard } = require("./templates/music");
@@ -14,6 +15,7 @@ module.exports = {
   parseCsvInput,
   createCardsFromCsv,
   renderCardsFromCsv,
+  createSvg,
   renderCard,
   createWelcomeCard,
   createGoodbyeCard,

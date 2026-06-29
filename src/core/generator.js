@@ -7,6 +7,7 @@ const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const merge = require("../utils/merge");
 const { resolveMagickCommand } = require("./imagemagick");
+const { createSvg } = require("./svg");
 
 const execFileAsync = promisify(execFile);
 
@@ -15,8 +16,7 @@ const DEFAULT_CARD = {
   height: 320,
   background: {
     color: "#10131a",
-    imagePath: null,
-    blur: 0
+    imagePath: null
   },
   output: {
     format: "png",
@@ -44,7 +44,15 @@ function normalizeFormat(format) {
 }
 
 function getExtension(format) {
-  return format === "jpeg" ? "jpg" : format;
+  if (format === "jpeg") return "jpg";
+  if (format === "svg") return "svg";
+  return format;
+}
+
+function getMime(format) {
+  if (format === "svg") return "image/svg+xml";
+  if (format === "jpeg") return "image/jpeg";
+  return `image/${format}`;
 }
 
 function clamp(value, min, max) {
@@ -53,40 +61,7 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, number));
 }
 
-function toNumber(value, fallback) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function colorWithOpacity(color, opacity = 1) {
-  const value = String(color || "#000000").trim();
-  const safeOpacity = clamp(opacity, 0, 1);
-
-  if (!value.startsWith("#")) {
-    return value;
-  }
-
-  let hex = value.slice(1);
-
-  if (hex.length === 3) {
-    hex = hex
-      .split("")
-      .map((char) => char + char)
-      .join("");
-  }
-
-  if (hex.length !== 6) {
-    return value;
-  }
-
-  const red = parseInt(hex.slice(0, 2), 16);
-  const green = parseInt(hex.slice(2, 4), 16);
-  const blue = parseInt(hex.slice(4, 6), 16);
-
-  return `rgba(${red},${green},${blue},${safeOpacity})`;
-}
-
-function createTempName(tmpDir, label, extension = "png") {
+function createTempName(tmpDir, label, extension = "tmp") {
   const id = crypto.randomBytes(8).toString("hex");
   return path.join(tmpDir, `${label}-${id}.${extension}`);
 }
@@ -104,235 +79,84 @@ async function runMagick(args) {
   }
 }
 
-function addPanel(args, panel) {
-  if (!panel || panel.enabled === false) return;
+function resolveOutputPath(outputConfig, format) {
+  const extension = getExtension(format);
 
-  const x = toNumber(panel.x, 0);
-  const y = toNumber(panel.y, 0);
-  const width = toNumber(panel.width, 0);
-  const height = toNumber(panel.height, 0);
-  const radius = toNumber(panel.radius, 0);
-
-  if (width <= 0 || height <= 0) return;
-
-  args.push(
-    "-fill",
-    colorWithOpacity(panel.color || "#000000", panel.opacity ?? 1),
-    "-stroke",
-    panel.borderColor || "none",
-    "-strokewidth",
-    String(toNumber(panel.borderWidth, 0)),
-    "-draw",
-    `roundrectangle ${x},${y} ${x + width},${y + height} ${radius},${radius}`
-  );
-}
-
-function addProgress(args, progress) {
-  if (!progress || progress.enabled === false) return;
-
-  const x = toNumber(progress.x, 0);
-  const y = toNumber(progress.y, 0);
-  const width = toNumber(progress.width, 0);
-  const height = toNumber(progress.height, 0);
-  const radius = toNumber(progress.radius, height / 2);
-  const amount = clamp(progress.progress ?? 0, 0, 1);
-  const filledWidth = Math.round(width * amount);
-
-  if (width <= 0 || height <= 0) return;
-
-  args.push(
-    "-fill",
-    progress.backgroundColor || "#222831",
-    "-stroke",
-    "none",
-    "-draw",
-    `roundrectangle ${x},${y} ${x + width},${y + height} ${radius},${radius}`
-  );
-
-  if (filledWidth > 0) {
-    args.push(
-      "-fill",
-      progress.fillColor || "#3b82f6",
-      "-draw",
-      `roundrectangle ${x},${y} ${x + filledWidth},${y + height} ${radius},${radius}`
-    );
-  }
-}
-
-function normalizeTextEntries(textConfig) {
-  if (!textConfig) return [];
-  if (Array.isArray(textConfig)) return textConfig;
-
-  return Object.entries(textConfig).map(([name, value]) => ({
-    name,
-    ...value
-  }));
-}
-
-function wrapText(value, maxChars) {
-  const rawLines = String(value ?? "").split(/\r?\n/);
-
-  if (!maxChars || maxChars <= 0) return rawLines;
-
-  const lines = [];
-
-  for (const rawLine of rawLines) {
-    const words = rawLine.split(/\s+/).filter(Boolean);
-    let current = "";
-
-    for (const word of words) {
-      const candidate = current ? `${current} ${word}` : word;
-
-      if (candidate.length > maxChars && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = candidate;
-      }
-    }
-
-    if (current) lines.push(current);
+  if (outputConfig.outputPath) {
+    return path.resolve(outputConfig.outputPath);
   }
 
-  return lines.length > 0 ? lines : [""];
+  return path.resolve(process.cwd(), "out", `tmxcards-${Date.now()}.${extension}`);
 }
 
-function addTexts(args, textConfig) {
-  const entries = normalizeTextEntries(textConfig).filter((entry) => {
-    return entry && entry.enabled !== false && entry.value !== undefined && entry.value !== null;
-  });
+async function outputRawContent(content, card, format) {
+  const outputConfig = card.output || {};
+  const returnType = outputConfig.returnType || "file";
+  const buffer = Buffer.from(content);
 
-  for (const entry of entries) {
-    const x = toNumber(entry.x, 0);
-    const y = toNumber(entry.y, 0);
-    const size = toNumber(entry.size, 18);
-    const lineHeight = toNumber(entry.lineHeight, Math.round(size * 1.25));
-    const lines = wrapText(entry.value, toNumber(entry.maxChars, 0));
-
-    if (entry.font) {
-      args.push("-font", entry.font);
-    }
-
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
-      const line = lines[lineIndex];
-      const lineY = y + lineIndex * lineHeight;
-
-      if (entry.shadow && entry.shadow.enabled !== false) {
-        args.push(
-          "-fill",
-          entry.shadow.color || "#000000",
-          "-pointsize",
-          String(size),
-          "-gravity",
-          entry.gravity || "northwest",
-          "-annotate",
-          `+${x + toNumber(entry.shadow.x, 2)}+${lineY + toNumber(entry.shadow.y, 2)}`,
-          line
-        );
-      }
-
-      args.push(
-        "-fill",
-        entry.color || "#ffffff",
-        "-pointsize",
-        String(size),
-        "-gravity",
-        entry.gravity || "northwest",
-        "-annotate",
-        `+${x}+${lineY}`,
-        line
-      );
-    }
-  }
-}
-
-async function createBase(card, tmpDir) {
-  const width = toNumber(card.width, DEFAULT_CARD.width);
-  const height = toNumber(card.height, DEFAULT_CARD.height);
-  const output = createTempName(tmpDir, "base");
-  const background = card.background || {};
-  const args = [];
-
-  if (exists(background.imagePath)) {
-    args.push(
-      background.imagePath,
-      "-auto-orient",
-      "-resize",
-      `${width}x${height}^`,
-      "-gravity",
-      "center",
-      "-extent",
-      `${width}x${height}`
-    );
-
-    if (toNumber(background.blur, 0) > 0) {
-      args.push("-blur", `0x${toNumber(background.blur, 0)}`);
-    }
-  } else {
-    args.push("-size", `${width}x${height}`, `xc:${background.color || "#10131a"}`);
+  if (!RETURN_TYPES.has(returnType)) {
+    throw new Error(`returnType inválido: ${returnType}. Use file, buffer ou base64.`);
   }
 
-  addPanel(args, card.panel);
-  addProgress(args, card.progress);
-  addTexts(args, card.text);
+  if (returnType === "buffer") {
+    return {
+      ok: true,
+      returnType,
+      format,
+      mime: getMime(format),
+      width: card.width,
+      height: card.height,
+      buffer,
+      bytes: buffer.length
+    };
+  }
 
-  args.push(output);
-  await runMagick(args);
-  return output;
+  if (returnType === "base64") {
+    return {
+      ok: true,
+      returnType,
+      format,
+      mime: getMime(format),
+      width: card.width,
+      height: card.height,
+      base64: buffer.toString("base64"),
+      bytes: buffer.length
+    };
+  }
+
+  const finalPath = resolveOutputPath(outputConfig, format);
+
+  if (exists(finalPath) && outputConfig.overwrite === false) {
+    throw new Error(`Arquivo já existe e overwrite=false: ${finalPath}`);
+  }
+
+  await fsp.mkdir(path.dirname(finalPath), { recursive: true });
+  await fsp.writeFile(finalPath, buffer);
+
+  return {
+    ok: true,
+    returnType,
+    path: finalPath,
+    format,
+    mime: getMime(format),
+    width: card.width,
+    height: card.height,
+    bytes: buffer.length
+  };
 }
 
-async function compositeMedia(basePath, media, tmpDir, label) {
-  if (!media || media.enabled === false || !exists(media.path)) return basePath;
-
-  const x = toNumber(media.x, 0);
-  const y = toNumber(media.y, 0);
-  const width = toNumber(media.width || media.size, 160);
-  const height = toNumber(media.height || media.size, width);
-  const resized = createTempName(tmpDir, `${label}-resized`);
-  const output = createTempName(tmpDir, `${label}-composite`);
-
-  await runMagick([
-    media.path,
-    "-auto-orient",
-    "-resize",
-    `${width}x${height}^`,
-    "-gravity",
-    "center",
-    "-extent",
-    `${width}x${height}`,
-    resized
-  ]);
-
-  await runMagick([
-    basePath,
-    resized,
-    "-geometry",
-    `+${x}+${y}`,
-    "-composite",
-    output
-  ]);
-
-  return output;
-}
-
-async function writeOutput(inputPath, card, tmpDir) {
+async function convertSvg(svgPath, card, tmpDir, format) {
   const outputConfig = card.output || {};
   const optimization = card.optimization || {};
-  const format = normalizeFormat(outputConfig.format);
-  const extension = getExtension(format);
   const returnType = outputConfig.returnType || "file";
 
   if (!RETURN_TYPES.has(returnType)) {
     throw new Error(`returnType inválido: ${returnType}. Use file, buffer ou base64.`);
   }
 
-  const targetPath = outputConfig.outputPath
-    ? path.resolve(outputConfig.outputPath)
-    : path.resolve(process.cwd(), "out", `tmxcards-${Date.now()}.${extension}`);
-
   const finalPath = returnType === "file"
-    ? targetPath
-    : createTempName(tmpDir, "output", extension);
+    ? resolveOutputPath(outputConfig, format)
+    : createTempName(tmpDir, "output", getExtension(format));
 
   if (returnType === "file" && exists(finalPath) && outputConfig.overwrite === false) {
     throw new Error(`Arquivo já existe e overwrite=false: ${finalPath}`);
@@ -340,7 +164,7 @@ async function writeOutput(inputPath, card, tmpDir) {
 
   await fsp.mkdir(path.dirname(finalPath), { recursive: true });
 
-  const args = [inputPath];
+  const args = [svgPath];
 
   if (optimization.stripMetadata !== false) {
     args.push("-strip");
@@ -369,6 +193,7 @@ async function writeOutput(inputPath, card, tmpDir) {
       returnType,
       path: finalPath,
       format,
+      mime: getMime(format),
       width: card.width,
       height: card.height,
       bytes: stat.size
@@ -382,7 +207,9 @@ async function writeOutput(inputPath, card, tmpDir) {
       ok: true,
       returnType,
       format,
-      mime: `image/${format}`,
+      mime: getMime(format),
+      width: card.width,
+      height: card.height,
       base64: buffer.toString("base64"),
       bytes: buffer.length
     };
@@ -392,6 +219,9 @@ async function writeOutput(inputPath, card, tmpDir) {
     ok: true,
     returnType,
     format,
+    mime: getMime(format),
+    width: card.width,
+    height: card.height,
     buffer,
     bytes: buffer.length
   };
@@ -399,13 +229,20 @@ async function writeOutput(inputPath, card, tmpDir) {
 
 async function renderCard(config = {}, options = {}) {
   const card = merge(merge(DEFAULT_CARD, config), options);
+  const outputConfig = card.output || {};
+  const format = normalizeFormat(outputConfig.format);
+  const svg = createSvg(card);
+
+  if (format === "svg") {
+    return outputRawContent(svg, card, format);
+  }
+
   const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), "tmxcards-"));
 
   try {
-    let current = await createBase(card, tmpDir);
-    current = await compositeMedia(current, card.avatar, tmpDir, "avatar");
-    current = await compositeMedia(current, card.thumbnail, tmpDir, "thumbnail");
-    return await writeOutput(current, card, tmpDir);
+    const svgPath = createTempName(tmpDir, "input", "svg");
+    await fsp.writeFile(svgPath, svg);
+    return await convertSvg(svgPath, card, tmpDir, format);
   } finally {
     if (!card.output || card.output.keepTemp !== true) {
       await fsp.rm(tmpDir, { recursive: true, force: true });
