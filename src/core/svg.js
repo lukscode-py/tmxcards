@@ -192,6 +192,40 @@ function addProgress(parts, progress) {
   }
 }
 
+function addDecorations(parts, decorations) {
+  if (!Array.isArray(decorations)) return;
+
+  for (const item of decorations) {
+    if (!item || item.enabled === false) continue;
+
+    if (item.type === "circle") {
+      parts.body.push(circle({
+        cx: toNumber(item.cx, 0),
+        cy: toNumber(item.cy, 0),
+        r: toNumber(item.r, 0),
+        fill: item.color || "#ffffff",
+        "fill-opacity": clamp(item.opacity ?? 1, 0, 1)
+      }));
+      continue;
+    }
+
+    if (item.type === "rect") {
+      const radius = toNumber(item.radius, 0);
+
+      parts.body.push(rect({
+        x: toNumber(item.x, 0),
+        y: toNumber(item.y, 0),
+        width: toNumber(item.width, 0),
+        height: toNumber(item.height, 0),
+        rx: radius,
+        ry: radius,
+        fill: item.color || "#ffffff",
+        "fill-opacity": clamp(item.opacity ?? 1, 0, 1)
+      }));
+    }
+  }
+}
+
 function addMedia(parts, media, label) {
   if (!media || media.enabled === false || !exists(media.path)) return;
 
@@ -369,6 +403,7 @@ function createSvg(config = {}) {
   const parts = createParts();
 
   addBackground(parts, config);
+  addDecorations(parts, config.decorations);
   addPanel(parts, config.panel);
   addMedia(parts, config.avatar, "avatar");
   addMedia(parts, config.thumbnail, "thumbnail");

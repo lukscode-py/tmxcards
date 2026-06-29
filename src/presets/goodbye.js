@@ -15,11 +15,12 @@ module.exports = welcomePresets.map((preset) => {
       },
       subtitle: {
         ...preset.text.subtitle,
-        value: "Um membro saiu"
+        value: "Um membro saiu",
+        color: preset.accentColor
       },
       message: {
         ...preset.text.message,
-        value: "Volte quando quiser."
+        value: "Volte quando quiser. Obrigado por ter participado."
       }
     }
   };
