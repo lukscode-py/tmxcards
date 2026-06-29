@@ -10,3 +10,6 @@ Thumbs.db
 .DS_Store
 
 tmp/
+
+examples/generated/
+exemplo.png
