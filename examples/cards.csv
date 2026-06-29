@@ -1,0 +1,3 @@
+type,variant,name,group,artist,title,duration,output
+welcome,welcome-01,Lucas,Grupo Oficial,,,,./out/csv-welcome-lucas.png
+music,music-02,,,lukscode-py,Night Ride,01:12 / 03:45,./out/csv-music-night-ride.jpg

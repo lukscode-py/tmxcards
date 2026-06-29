@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+dist/
+.tmp/
+.cache/
+out/
+*.log
+*.tmp
+Thumbs.db
+.DS_Store

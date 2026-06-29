@@ -1,0 +1,40 @@
+{
+  "name": "tmxcards",
+  "version": "0.1.0",
+  "description": "Gerador leve de cards via SVG e ImageMagick para bots e automações, focado em Termux, Linux e Windows.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "files": [
+    "src",
+    "examples",
+    "scripts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node scripts/check.js",
+    "check:load": "node -e \"require('./src')\"",
+    "example:welcome": "node examples/basic-welcome.js",
+    "example:music": "node examples/basic-music.js",
+    "example:csv": "node examples/basic-csv.js"
+  },
+  "keywords": [
+    "cards",
+    "termux",
+    "svg",
+    "imagemagick",
+    "csv",
+    "whatsapp",
+    "bot",
+    "welcome-card",
+    "music-card"
+  ],
+  "author": "lukscode-py",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.6"
+  }
+}
