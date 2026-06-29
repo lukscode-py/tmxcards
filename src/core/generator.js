@@ -8,6 +8,7 @@ const { promisify } = require("node:util");
 const merge = require("../utils/merge");
 const { resolveMagickCommand } = require("./imagemagick");
 const { createSvg } = require("./svg");
+const { createPremiumSvg } = require("./premium-renderers");
 
 const execFileAsync = promisify(execFile);
 
@@ -338,7 +339,7 @@ async function renderCard(config = {}, options = {}) {
 
   try {
     const svgCard = await prepareCardMedia(card, tmpDir);
-    const svg = createSvg(svgCard);
+    const svg = createPremiumSvg(svgCard) || createSvg(svgCard);
 
     if (format === "svg") {
       return await outputRawContent(svg, svgCard, format);

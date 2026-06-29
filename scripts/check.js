@@ -93,6 +93,22 @@ async function main() {
     throw new Error("renderCard não retornou buffer válido.");
   }
 
+  const premium = createWelcomeCard({
+    variant: "welcome-01",
+    output: {
+      format: "svg",
+      returnType: "buffer"
+    }
+  });
+
+  const premiumRendered = await renderCard(premium);
+
+  const premiumSvg = premiumRendered.buffer.toString("utf8");
+
+  if (!premiumRendered.ok || !premiumSvg.includes('data-renderer="welcome-premium-01"')) {
+    throw new Error("welcome-01 premium não foi renderizado pelo renderer dedicado.");
+  }
+
   console.log(JSON.stringify({
     ok: true,
     magick,
@@ -107,6 +123,9 @@ async function main() {
     },
     svg: {
       bytes: svgRendered.bytes
+    },
+    premium: {
+      bytes: premiumRendered.bytes
     }
   }, null, 2));
 }

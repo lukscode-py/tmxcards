@@ -102,6 +102,78 @@ function createPreset(index, layout) {
   const theme = getPalette(index);
   const id = `welcome-${String(index).padStart(2, "0")}`;
 
+  if (index === 1) {
+    return {
+      id,
+      kind: "welcome",
+      renderer: "welcome-premium-01",
+      theme: "premium-hero-dark",
+      width: 1280,
+      height: 720,
+      output: {
+        format: "png",
+        quality: 92,
+        returnType: "file"
+      },
+      optimization: {
+        mode: "balanced",
+        stripMetadata: true,
+        compressionLevel: 7,
+        progressive: true
+      },
+      background: {
+        color: "#05070d",
+        imagePath: null
+      },
+      panel: {
+        enabled: false
+      },
+      decorations: [],
+      accentColor: "#6366f1",
+      logo: {
+        enabled: false,
+        path: null
+      },
+      avatar: {
+        enabled: true,
+        path: null,
+        x: 92,
+        y: 240,
+        width: 164,
+        height: 164,
+        shape: "circle",
+        borderWidth: 0
+      },
+      text: {
+        pill: {
+          value: "BEM-VINDO"
+        },
+        title: {
+          value: "Bem-vindo, Kanna",
+          color: "#f8fafc"
+        },
+        subtitle: {
+          value: "Você agora faz parte de TESTE KANNA ✨",
+          color: "#cbd5e1"
+        },
+        badgeLeft: {
+          value: "TESTE KANNA ✨"
+        },
+        badgeRight: {
+          value: "Membro #8"
+        },
+        message: {
+          value: "Seja bem vindo Kanna",
+          color: "#e5e7eb"
+        },
+        footer: {
+          value: "Kanna Bot • 28/06/2026",
+          color: "#94a3b8"
+        }
+      }
+    };
+  }
+
   if (index === 11) {
     return {
       id,
