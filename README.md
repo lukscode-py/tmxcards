@@ -1,61 +1,48 @@
 # tmxcards
 
-`tmxcards` é um pacote Node.js para criar cards de imagem de forma simples, leve e flexível, com foco em ambientes limitados como Termux.
+Biblioteca CommonJS para gerar cards em **SVG**, **PNG**, **JPEG** e **WEBP** usando Node.js. O foco do pacote é criar cards bonitos e leves para bots, painéis, automações, Termux e servidores Linux/Windows sem depender de `canvas` ou `sharp`.
 
-## Ideia do projeto
+O fluxo principal é:
 
-O objetivo principal do pacote é gerar cards usando um fluxo leve baseado em SVG e ImageMagick, sem depender de bibliotecas pesadas como `canvas` ou `sharp`.
+1. Escolher um card pelo ID.
+2. Passar uma configuração simples.
+3. Renderizar como arquivo, buffer ou base64.
 
-Fluxo desejado:
+```js
+const { createCard, renderCard } = require("tmxcards");
 
-```txt
-configuração JS / dados opcionais em CSV
-        ↓
-template do card
-        ↓
-SVG gerado internamente
-        ↓
-ImageMagick converte para PNG/JPEG/WebP
-        ↓
-arquivo, buffer ou base64
+async function main() {
+  const card = createCard("welcome/dark", {
+    name: "Lucas",
+    group: "Meu grupo",
+    avatar: {
+      imagePath: "./perfil.png"
+    },
+    output: {
+      format: "png",
+      returnType: "file",
+      path: "./welcome.png"
+    }
+  });
+
+  const result = await renderCard(card);
+
+  console.log(result);
+}
+
+main();
 ```
 
-Atualmente o pacote já possui renderização funcional via ImageMagick e presets prontos. O próximo passo técnico é separar melhor o motor SVG interno para deixar os layouts mais fáceis de manter e personalizar.
+## Recursos
 
-## Por que SVG?
-
-SVG combina bem com cards porque permite descrever o visual de forma parecida com HTML/XML:
-
-- textos, formas e posições bem organizados
-- layouts mais fáceis de ajustar
-- bom suporte a vetores, caixas, bordas e imagens
-- conversão simples para PNG/JPEG/WebP com ImageMagick
-- melhor compatibilidade com Termux do que `canvas` ou `sharp`
-
-## Papel do CSV
-
-CSV não é o motor visual do pacote.
-
-CSV é apenas uma entrada opcional para gerar vários cards em lote.
-
-Exemplo:
-
-```txt
-1 linha do CSV = 1 card gerado
-```
-
-Isso é útil para bots, listas de membros, playlists, rankings, catálogos ou qualquer automação que precise criar muitas imagens com dados diferentes.
-
-## Recursos atuais
-
-- geração de welcome cards
-- geração de goodbye cards
-- geração de music cards
-- 10 presets para cada família
-- suporte a dados via CSV
-- saída em arquivo, buffer ou base64
-- exportação em PNG, JPEG e outros formatos suportados pelo ImageMagick
-- foco em Termux, Linux e Windows
+- Cards prontos para boas-vindas, despedida, rank, level, música e moderação.
+- Card dinâmico para IDs personalizados.
+- SVG nativo e leve.
+- PNG/JPEG/WEBP via ImageMagick.
+- Suporte a imagem por `path`, `imagePath`, `url`, `imageUrl`, `dataUri`, `base64` e `Buffer`.
+- Cache interno de imagens para evitar reler o mesmo arquivo várias vezes.
+- API única com `createCard()`, `renderCard()`, `listCards()` e `getCardInfo()`.
+- Exemplos prontos em `examples/`.
 
 ## Instalação
 
@@ -63,149 +50,985 @@ Isso é útil para bots, listas de membros, playlists, rankings, catálogos ou q
 npm install tmxcards
 ```
 
-Também é necessário ter o ImageMagick instalado no sistema.
+Com Yarn:
 
-No Termux:
+```bash
+yarn add tmxcards
+```
+
+Uso local durante desenvolvimento:
+
+```bash
+npm install
+npm run check
+npm run example:all-cards
+```
+
+## Requisitos
+
+Para gerar **SVG**, nenhum binário externo é necessário.
+
+Para gerar **PNG**, **JPEG** ou **WEBP**, instale ImageMagick.
+
+### Linux / Termux
 
 ```bash
 pkg install imagemagick
 ```
 
-No Linux:
+ou em distros Debian/Ubuntu:
 
 ```bash
 sudo apt install imagemagick
 ```
 
-## Uso básico
+### Windows
+
+Instale o ImageMagick e deixe o comando `magick` disponível no PATH.
+
+Você pode verificar o suporte do ambiente com:
 
 ```js
-const { createWelcomeCard, renderCard } = require("tmxcards");
+const { getRendererInfo } = require("tmxcards");
+
+console.log(getRendererInfo());
+```
+
+Exemplo de retorno:
+
+```js
+{
+  svg: true,
+  png: true,
+  jpeg: true,
+  webp: true,
+  raster: true,
+  command: "convert",
+  platform: "linux"
+}
+```
+
+## Começo rápido
+
+### Renderizar PNG em arquivo
+
+```js
+const { createCard, renderCard } = require("tmxcards");
 
 async function main() {
-  const card = createWelcomeCard({
-    variant: "welcome-01",
-    avatar: {
-      enabled: false
+  const card = createCard("rank/personal", {
+    name: "Lucas",
+    level: 12,
+    xp: {
+      current: 340,
+      total: 1000
     },
-    text: {
-      title: {
-        value: "Bem-vindo, Lucas"
-      },
-      subtitle: {
-        value: "Grupo Oficial"
-      },
-      message: {
-        value: "Leia as regras e aproveite a comunidade."
-      }
+    avatar: {
+      imagePath: "./perfil.png"
     },
     output: {
       format: "png",
-      outputPath: "./welcome.png",
-      returnType: "file"
+      returnType: "file",
+      path: "./rank.png"
     }
   });
 
   const result = await renderCard(card);
-  console.log(result);
+
+  console.log(result.path);
 }
 
 main();
 ```
 
-## Uso com CSV
+### Renderizar SVG como buffer
 
 ```js
-const {
-  createWelcomeCard,
-  renderCardsFromCsv
-} = require("tmxcards");
+const { createCard, renderCard } = require("tmxcards");
 
 async function main() {
-  const results = await renderCardsFromCsv({
-    csv: "./members.csv",
-    mapRow(row) {
-      return createWelcomeCard({
-        avatar: {
-          enabled: false
-        },
-        text: {
-          title: {
-            value: `Bem-vindo, ${row.name}`
-          },
-          subtitle: {
-            value: row.group
-          }
-        },
-        output: {
-          format: "png",
-          outputPath: `./out/${row.name}.png`,
-          returnType: "file"
-        }
-      });
+  const card = createCard("music/player", {
+    title: "Minha música",
+    artist: "Meu artista",
+    cover: {
+      imagePath: "./cover.png"
+    },
+    output: {
+      format: "svg",
+      returnType: "buffer"
     }
   });
 
-  console.log(results);
+  const result = await renderCard(card);
+
+  console.log(result.mime);       // image/svg+xml
+  console.log(result.buffer);     // Buffer
+  console.log(result.bytes);      // tamanho em bytes
 }
 
 main();
 ```
 
-## Estrutura
+### Renderizar base64
 
-- `src/core`: núcleo de renderização, CSV, output e integração com ImageMagick
-- `src/templates`: funções de alto nível para templates prontos
-- `src/presets`: presets visuais
-- `src/utils`: helpers internos
-- `examples`: exemplos de uso
-- `scripts/check.js`: validação real do pacote
+```js
+const { createCard, renderCard } = require("tmxcards");
 
-## Famílias de cards
+async function main() {
+  const card = createCard("welcome/dark", {
+    name: "Lucas",
+    output: {
+      format: "png",
+      returnType: "base64"
+    }
+  });
 
-### Welcome
+  const result = await renderCard(card);
 
-- 10 presets
-- layouts com e sem avatar
-- suporte a título, subtítulo, mensagem, rodapé e fundo customizável
+  console.log(result.base64);
+}
 
-### Goodbye
+main();
+```
 
-- 10 presets equivalentes aos layouts de welcome
-- textos ajustados para saída de membro
-- mesma lógica de personalização
+## API pública
 
-### Music
+```js
+const {
+  createCard,
+  renderCard,
+  createSvg,
+  listCards,
+  getCardInfo,
+  getRendererInfo,
+  resolveMagickCommand,
+  getSupportedFormats,
+  clearImageCache,
+  getImageCacheStats
+} = require("tmxcards");
+```
 
-- 10 presets
-- suporte a título, artista, duração, progresso, thumbnail e fundo customizável
+### `createCard(id, config)`
 
-## Saída
+Cria uma configuração normalizada para um card registrado.
 
-Configurações principais:
+```js
+const card = createCard("welcome/dark", {
+  name: "Lucas"
+});
+```
 
-- `format`: `png`, `jpeg`, `jpg`, `webp` e outros formatos suportados pelo ImageMagick
-- `quality`
-- `compressionLevel`
-- `stripMetadata`
-- `progressive`
-- `width`
-- `height`
-- `outputPath`
-- `returnType`: `file`, `buffer`, `base64`
+Se o ID não existir, a biblioteca cria um card dinâmico com o ID informado.
 
-## Status
+```js
+const card = createCard("custom/meu-card", {
+  title: "Meu card",
+  name: "Lucas"
+});
+```
 
-Base funcional:
+### `renderCard(card, options?)`
 
-- renderização validada com ImageMagick
-- geração em arquivo validada
-- geração em buffer validada
-- geração em lote via CSV validada
-- pacote testado com `npm pack --dry-run`
+Renderiza o card.
 
-Próximo passo planejado:
+```js
+const result = await renderCard(card);
+```
 
-- adicionar um núcleo SVG explícito em `src/core/svg.js`
-- permitir salvar SVG diretamente com `output.format = "svg"`
-- manter PNG/JPEG/WebP via conversão do SVG pelo ImageMagick
+Retorno comum:
+
+```js
+{
+  ok: true,
+  returnType: "file",
+  path: "./card.png",
+  format: "png",
+  mime: "image/png",
+  width: 470,
+  height: 120,
+  bytes: 12345
+}
+```
+
+### `listCards()`
+
+Lista todos os cards registrados.
+
+```js
+const { listCards } = require("tmxcards");
+
+console.log(listCards());
+```
+
+### `getCardInfo(id)`
+
+Busca informações de um card específico.
+
+```js
+const { getCardInfo } = require("tmxcards");
+
+console.log(getCardInfo("rank/list"));
+```
+
+### `getRendererInfo()`
+
+Mostra se o ambiente consegue gerar SVG e raster.
+
+```js
+const { getRendererInfo } = require("tmxcards");
+
+console.log(getRendererInfo());
+```
+
+### `clearImageCache()` e `getImageCacheStats()`
+
+Controlam o cache interno de imagens.
+
+```js
+const {
+  clearImageCache,
+  getImageCacheStats
+} = require("tmxcards");
+
+clearImageCache();
+
+console.log(getImageCacheStats());
+```
+
+## Configuração de saída
+
+Todo card pode receber `output`.
+
+```js
+output: {
+  format: "png",
+  returnType: "file",
+  path: "./card.png"
+}
+```
+
+### `format`
+
+Formatos comuns:
+
+```txt
+svg
+png
+jpeg
+webp
+```
+
+`svg` é o mais leve e não precisa de ImageMagick.
+
+`png`, `jpeg` e `webp` precisam de ImageMagick.
+
+### `returnType`
+
+Tipos comuns:
+
+```txt
+file
+buffer
+base64
+```
+
+## Usando imagens
+
+Campos de imagem aceitam várias formas.
+
+### Caminho local
+
+```js
+avatar: {
+  imagePath: "./perfil.png"
+}
+```
+
+ou:
+
+```js
+avatar: {
+  path: "./perfil.png"
+}
+```
+
+### URL
+
+```js
+avatar: {
+  imageUrl: "https://example.com/perfil.png"
+}
+```
+
+ou:
+
+```js
+avatar: {
+  url: "https://example.com/perfil.png"
+}
+```
+
+### Data URI
+
+```js
+avatar: {
+  dataUri: "data:image/png;base64,..."
+}
+```
+
+### Buffer
+
+```js
+const fs = require("node:fs");
+
+const buffer = fs.readFileSync("./perfil.png");
+
+const card = createCard("welcome/dark", {
+  name: "Lucas",
+  avatar: {
+    buffer,
+    mimeType: "image/png"
+  }
+});
+```
+
+## Cards disponíveis
+
+### Resumo dos IDs
+
+| Categoria | ID | Uso |
+|---|---|---|
+| Welcome | `welcome/dark` | Boas-vindas escuro minimalista |
+| Welcome | `welcome/premium` | Boas-vindas premium |
+| Welcome | `welcome/light` | Boas-vindas tema claro |
+| Welcome | `welcome/midnight` | Boas-vindas destaque central |
+| Goodbye | `goodbye/dark` | Despedida escuro minimalista |
+| Goodbye | `goodbye/premium` | Despedida premium |
+| Goodbye | `goodbye/light` | Despedida tema claro |
+| Goodbye | `goodbye/midnight` | Despedida destaque central |
+| Rank | `rank/personal` | Level, XP e barra de progresso |
+| Rank | `rank/list` | Lista de ranking top 1, top 10 etc. |
+| Music | `music/player` | Card de música estilo player |
+| Music | `music/orbit` | Card de música com capa circular/orbital |
+| Moderation | `moderation/ban` | Card de banimento |
+| Moderation | `moderation/rank-change` | Card de promoção/rebaixamento |
+| Dynamic | `custom/*` | Card dinâmico para ID personalizado |
+
+---
+
+## Welcome cards
+
+### `welcome/dark`
+
+<img src="./docs/previews/welcome-dark.png" width="470" alt="welcome/dark" />
+
+Card escuro minimalista para entrada de usuário em grupo. Ideal para bot de WhatsApp, Discord ou painel de comunidade.
+
+Configuração mínima:
+
+```js
+const card = createCard("welcome/dark", {
+  name: "Lucas"
+});
+```
+
+Exemplo completo:
+
+```js
+const card = createCard("welcome/dark", {
+  name: "Lucas",
+  group: "Kanna Group",
+  memberCount: 128,
+  avatar: {
+    imagePath: "./perfil.png"
+  },
+  background: {
+    imagePath: "./background.png",
+    opacity: 0.42,
+    blur: true
+  },
+  output: {
+    format: "png",
+    returnType: "file",
+    path: "./welcome-dark.png"
+  }
+});
+```
+
+Campos úteis:
+
+| Campo | Descrição |
+|---|---|
+| `name` | Nome do usuário |
+| `group` | Nome do grupo |
+| `memberCount` | Total de membros |
+| `avatar` | Foto de perfil |
+| `background` | Imagem de fundo opcional |
+| `squares` | Quadrados decorativos do fundo |
+| `text` | Personalização de textos |
+| `colors` / `theme` | Ajustes visuais |
+
+---
+
+### `welcome/premium`
+
+<img src="./docs/previews/welcome-premium.png" width="470" alt="welcome/premium" />
+
+Card de boas-vindas em layout premium, maior e mais detalhado.
+
+Configuração mínima:
+
+```js
+const card = createCard("welcome/premium", {
+  name: "Lucas"
+});
+```
+
+Exemplo:
+
+```js
+const card = createCard("welcome/premium", {
+  name: "Lucas",
+  group: "Meu grupo",
+  subtext: "Seja bem-vindo ao servidor",
+  avatar: {
+    imagePath: "./perfil.png"
+  },
+  background: {
+    imagePath: "./background.png"
+  }
+});
+```
+
+---
+
+### `welcome/light`
+
+<img src="./docs/previews/welcome-light.png" width="470" alt="welcome/light" />
+
+Variação clara do card de boas-vindas, útil quando o bot usa identidade visual limpa.
+
+Configuração mínima:
+
+```js
+const card = createCard("welcome/light", {
+  name: "Lucas"
+});
+```
+
+---
+
+### `welcome/midnight`
+
+<img src="./docs/previews/welcome-midnight.png" width="470" alt="welcome/midnight" />
+
+Card de boas-vindas com foco central, avatar grande e visual noturno.
+
+Configuração mínima:
+
+```js
+const card = createCard("welcome/midnight", {
+  name: "Lucas"
+});
+```
+
+Exemplo:
+
+```js
+const card = createCard("welcome/midnight", {
+  name: "Lucas",
+  group: "Grupo oficial",
+  avatar: {
+    path: "./perfil.png"
+  },
+  background: {
+    imagePath: "./background.png",
+    overlayOpacity: 0.45
+  }
+});
+```
+
+## Goodbye cards
+
+### `goodbye/dark`
+
+<img src="./docs/previews/goodbye-dark.png" width="470" alt="goodbye/dark" />
+
+Versão de despedida do card escuro minimalista.
+
+```js
+const card = createCard("goodbye/dark", {
+  name: "Lucas"
+});
+```
+
+### `goodbye/premium`
+
+<img src="./docs/previews/goodbye-premium.png" width="470" alt="goodbye/premium" />
+
+Card premium para saída de usuário.
+
+```js
+const card = createCard("goodbye/premium", {
+  name: "Lucas"
+});
+```
+
+### `goodbye/light`
+
+<img src="./docs/previews/goodbye-light.png" width="470" alt="goodbye/light" />
+
+Variação clara para despedida.
+
+```js
+const card = createCard("goodbye/light", {
+  name: "Lucas"
+});
+```
+
+### `goodbye/midnight`
+
+<img src="./docs/previews/goodbye-midnight.png" width="470" alt="goodbye/midnight" />
+
+Card noturno centralizado para despedida.
+
+```js
+const card = createCard("goodbye/midnight", {
+  name: "Lucas"
+});
+```
+
+## Rank cards
+
+### `rank/personal`
+
+<img src="./docs/previews/rank-personal.png" width="470" alt="rank/personal" />
+
+Card pessoal de level e XP. Mostra nome, perfil, level, XP e barra de progresso.
+
+```js
+const card = createCard("rank/personal", {
+  name: "Lucas",
+  level: 12,
+  xp: {
+    current: 340,
+    total: 1000,
+    progress: 34
+  },
+  avatar: {
+    imagePath: "./perfil.png"
+  }
+});
+```
+
+Campos úteis:
+
+| Campo | Descrição |
+|---|---|
+| `name` | Nome do usuário |
+| `level` | Level atual |
+| `xp.current` | XP atual |
+| `xp.total` | XP necessário |
+| `xp.progress` | Progresso em porcentagem |
+| `avatar` | Foto de perfil |
+| `bar` | Barra de XP |
+| `background` | Fundo personalizado |
+
+### `rank/list`
+
+<img src="./docs/previews/rank-list.png" width="470" alt="rank/list" />
+
+Card universal de ranking. Serve para top 3, top 10, placares, economia, mensagens, XP, level, staff, ranking de grupos e listas customizadas.
+
+```js
+const card = createCard("rank/list", {
+  title: "Top XP",
+  subtitle: "Ranking semanal",
+  items: [
+    {
+      name: "Lucas",
+      sub: "Level 12",
+      value: "12.450 XP",
+      progress: 100,
+      imagePath: "./perfil-1.png"
+    },
+    {
+      name: "Kanna",
+      sub: "Level 10",
+      value: "9.800 XP",
+      progress: 78,
+      imagePath: "./perfil-2.png"
+    }
+  ],
+  stats: [
+    { label: "Total", value: "10 usuários" },
+    { label: "Semana", value: "+2.3k XP" }
+  ],
+  extraTables: [
+    {
+      title: "Prêmios",
+      rows: [
+        ["#1", "VIP 7 dias"],
+        ["#2", "VIP 3 dias"]
+      ]
+    }
+  ]
+});
+```
+
+Campos úteis:
+
+| Campo | Descrição |
+|---|---|
+| `title` | Título do rank |
+| `subtitle` | Subtítulo |
+| `items` | Lista principal |
+| `items[].name` | Nome da linha |
+| `items[].sub` | Texto secundário |
+| `items[].value` | Valor à direita |
+| `items[].progress` | Barra da linha |
+| `items[].imagePath` | Avatar da linha |
+| `items[].icon` | Ícone/fallback |
+| `stats` | Cards de estatísticas |
+| `extraTables` | Tabelas extras |
+| `theme` | Cores, fontes e espaçamentos |
+| `options.compact` | Layout compacto |
+
+## Music cards
+
+### `music/player`
+
+<img src="./docs/previews/music-player.png" width="470" alt="music/player" />
+
+Card de música com capa, título, subtítulo, duração e barra de progresso.
+
+```js
+const card = createCard("music/player", {
+  title: "Nome da música",
+  artist: "Nome do artista",
+  duration: "3:45",
+  cover: {
+    imagePath: "./cover.png"
+  },
+  progress: {
+    value: 38
+  }
+});
+```
+
+### `music/orbit`
+
+<img src="./docs/previews/music-orbit.png" width="470" alt="music/orbit" />
+
+Card de música com capa circular/orbital e visual mais estilizado.
+
+```js
+const card = createCard("music/orbit", {
+  title: "Minha música",
+  subtitle: "Meu artista",
+  cover: {
+    imagePath: "./cover.png"
+  },
+  progress: {
+    value: 42
+  }
+});
+```
+
+## Moderation cards
+
+### `moderation/ban`
+
+<img src="./docs/previews/moderation-ban.png" width="470" alt="moderation/ban" />
+
+Card para banimento, punição ou alerta administrativo.
+
+```js
+const card = createCard("moderation/ban", {
+  name: "Lucas",
+  group: "Meu grupo",
+  reason: "Divulgação proibida",
+  moderator: "Admin",
+  date: "29/06/2026",
+  time: "19:00",
+  avatar: {
+    imagePath: "./perfil.png"
+  }
+});
+```
+
+### `moderation/rank-change`
+
+<img src="./docs/previews/moderation-rank-change.png" width="470" alt="moderation/rank-change" />
+
+Card para promoção, rebaixamento ou alteração de cargo.
+
+```js
+const card = createCard("moderation/rank-change", {
+  name: "Lucas",
+  group: "Meu grupo",
+  action: {
+    mode: "promote"
+  },
+  oldRole: "Membro",
+  newRole: "Admin",
+  moderator: "Dono",
+  avatar: {
+    imagePath: "./perfil.png"
+  }
+});
+```
+
+Modos comuns:
+
+```txt
+promote
+demote
+neutral
+```
+
+## Cards dinâmicos
+
+Se você chamar `createCard()` com um ID que não está registrado, o pacote cria um card dinâmico automaticamente.
+
+### `custom/canvas-simple`
+
+<img src="./docs/previews/custom-canvas-simple.png" width="470" alt="custom/canvas-simple" />
+
+```js
+const card = createCard("custom/canvas-simple", {
+  title: "Meu card",
+  subtitle: "Gerado com ID personalizado",
+  main: "Texto principal do card",
+  badges: [
+    { text: "CUSTOM" },
+    { text: "SVG" }
+  ],
+  stats: [
+    { label: "API", value: "OK" },
+    { label: "Cards", value: "14+" }
+  ],
+  progress: {
+    enabled: true,
+    value: 72,
+    label: "Progresso"
+  }
+});
+```
+
+### `custom/profile-simple`
+
+<img src="./docs/previews/custom-profile-simple.png" width="470" alt="custom/profile-simple" />
+
+```js
+const card = createCard("custom/profile-simple", {
+  title: "Perfil",
+  name: "Lucas",
+  group: "Kanna Group",
+  avatar: {
+    imagePath: "./perfil.png"
+  },
+  stats: [
+    { label: "Level", value: "12" },
+    { label: "XP", value: "340" }
+  ]
+});
+```
+
+Campos úteis para card dinâmico:
+
+| Campo | Descrição |
+|---|---|
+| `title` | Título |
+| `subtitle` | Subtítulo |
+| `name` | Nome do usuário |
+| `group` | Grupo |
+| `main` | Texto principal |
+| `footer` | Rodapé |
+| `avatar` | Foto |
+| `background` | Fundo |
+| `badges` | Tags |
+| `stats` | Estatísticas |
+| `progress` | Barra de progresso |
+| `theme` | Tema visual |
+| `elements` | Elementos extras |
+
+## Personalização geral
+
+A maioria dos cards aceita objetos como:
+
+```js
+{
+  name: "Lucas",
+  group: "Meu grupo",
+  avatar: {
+    imagePath: "./perfil.png",
+    opacity: 1
+  },
+  background: {
+    imagePath: "./bg.png",
+    overlayOpacity: 0.45
+  },
+  text: {
+    title: {
+      value: "Bem-vindo(a)",
+      color: "#FFFFFF"
+    },
+    subtitle: {
+      value: "Sub texto",
+      opacity: 0.72
+    }
+  },
+  output: {
+    format: "png",
+    returnType: "file",
+    path: "./card.png"
+  }
+}
+```
+
+### Texto
+
+Muitos cards aceitam texto direto:
+
+```js
+createCard("welcome/dark", {
+  name: "Lucas",
+  group: "Meu grupo"
+});
+```
+
+E também texto avançado:
+
+```js
+createCard("welcome/dark", {
+  text: {
+    name: {
+      value: "Lucas",
+      color: "#FFFFFF"
+    },
+    group: {
+      value: "Meu grupo",
+      opacity: 0.72
+    }
+  }
+});
+```
+
+### Tema
+
+Cards como `rank/list` e dinâmicos aceitam `theme`.
+
+```js
+createCard("rank/list", {
+  title: "Top moedas",
+  items: [
+    { name: "Lucas", value: "10.000", progress: 100 }
+  ],
+  theme: {
+    bgStart: "#050505",
+    bgEnd: "#111111",
+    accentStart: "#FFFFFF",
+    accentEnd: "#9CA3AF",
+    text: "#FFFFFF",
+    muted: "#A3A3A3"
+  }
+});
+```
+
+## Exemplos do pacote
+
+Gerar todos os exemplos:
+
+```bash
+npm run example:all-cards
+```
+
+Rodar exemplo específico:
+
+```bash
+npm run example:welcome-premium-01
+npm run example:music-midnight-mono-player
+npm run example:dynamic-card
+```
+
+Os arquivos gerados ficam em:
+
+```txt
+examples/generated/
+```
+
+Essa pasta é ignorada pelo Git.
+
+## Uso em bot
+
+Exemplo genérico para enviar o buffer em um bot:
+
+```js
+const { createCard, renderCard } = require("tmxcards");
+
+async function createWelcomeBuffer(user) {
+  const card = createCard("welcome/dark", {
+    name: user.name,
+    group: "Meu grupo",
+    avatar: {
+      imageUrl: user.avatarUrl
+    },
+    output: {
+      format: "png",
+      returnType: "buffer"
+    }
+  });
+
+  const result = await renderCard(card);
+
+  if (!result.ok) {
+    throw new Error("Falha ao gerar card");
+  }
+
+  return result.buffer;
+}
+```
+
+## Dicas de performance
+
+Use `format: "svg"` quando a plataforma aceitar SVG. É mais rápido e não precisa converter imagem.
+
+Para WhatsApp e plataformas que exigem imagem raster, use `png`.
+
+Quando for gerar vários cards com a mesma foto/capa, o cache interno evita reler o mesmo arquivo repetidas vezes.
+
+```js
+const {
+  clearImageCache,
+  getImageCacheStats
+} = require("tmxcards");
+
+clearImageCache();
+
+// renderize vários cards...
+
+console.log(getImageCacheStats());
+```
+
+## Validação
+
+Durante desenvolvimento:
+
+```bash
+npm run check
+npm run check:load
+npm run example:all-cards
+npm pack --dry-run
+```
+
+## Compatibilidade
+
+- Node.js com CommonJS.
+- Linux, Termux e Windows.
+- SVG sem dependência externa.
+- PNG/JPEG/WEBP com ImageMagick.
+
+## Licença
+
+MIT

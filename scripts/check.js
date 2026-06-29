@@ -1,6 +1,7 @@
 const {
-  resolveMagickCommand,
+  resolveRsvgCommand,
   getSupportedFormats,
+  getRendererInfo,
   createSvg,
   renderCard,
   createCard,
@@ -11,7 +12,7 @@ const {
 } = require("../src");
 
 const REQUIRED_PUBLIC_API = [
-  "resolveMagickCommand",
+  "resolveRsvgCommand",
   "getSupportedFormats",
   "getRendererInfo",
   "createSvg",
@@ -24,6 +25,7 @@ const REQUIRED_PUBLIC_API = [
 ];
 
 const FORBIDDEN_PUBLIC_API = [
+  "resolveMagickCommand",
   "createWelcomePremium01",
   "createWelcomeLight01",
   "createWelcomeMidnightFocus",
@@ -88,7 +90,7 @@ function requirePublicApi() {
   }
 
   for (const key of FORBIDDEN_PUBLIC_API) {
-    assert(api[key] === undefined, `Factory antiga ainda está pública: ${key}`);
+    assert(api[key] === undefined, `Factory antiga ou API removida ainda está pública: ${key}`);
   }
 }
 
@@ -152,12 +154,35 @@ async function testPngRender() {
   const result = await renderCard(card);
 
   assert(result.ok, "Render PNG falhou.");
+  assert(result.format === "png", "Render PNG retornou formato incorreto.");
+  assert(result.mime === "image/png", "Render PNG retornou mime incorreto.");
+  assert(Buffer.isBuffer(result.buffer), "Render PNG não retornou Buffer.");
   assert(result.bytes > 0, "Render PNG sem bytes.");
 
   return {
     format: result.format,
     bytes: result.bytes
   };
+}
+
+async function testUnsupportedFormats() {
+  const card = createCard("welcome/dark", {
+    name: "Lucas",
+    output: {
+      format: "jpeg",
+      returnType: "buffer"
+    }
+  });
+
+  try {
+    await renderCard(card);
+    throw new Error("JPEG deveria falhar sem renderer.");
+  } catch (error) {
+    assert(
+      String(error.message).includes("Formato não suportado"),
+      `Erro de formato não suportado incorreto: ${error.message}`
+    );
+  }
 }
 
 async function testDynamicCard() {
@@ -202,9 +227,18 @@ async function testDynamicCard() {
 async function main() {
   requirePublicApi();
 
-  const magick = await Promise.resolve(resolveMagickCommand());
-  const formats = await Promise.resolve(getSupportedFormats());
+  const command = resolveRsvgCommand();
+  const formats = getSupportedFormats();
+  const renderer = getRendererInfo();
   const cards = listCards();
+
+  assert(command === "rsvg-convert", "resolveRsvgCommand não resolveu rsvg-convert.");
+  assert(formats.includes("svg"), "getSupportedFormats não inclui svg.");
+  assert(formats.includes("png"), "getSupportedFormats não inclui png.");
+  assert(renderer.engine === "rsvg-convert", "getRendererInfo não usa rsvg-convert.");
+  assert(renderer.png === true, "getRendererInfo deveria indicar png=true.");
+  assert(renderer.jpeg === false, "getRendererInfo deveria indicar jpeg=false.");
+  assert(renderer.webp === false, "getRendererInfo deveria indicar webp=false.");
 
   assert(getCardInfo("welcome/dark")?.id === "welcome/dark", "getCardInfo falhou para welcome/dark");
   assert(getCardInfo("id/inexistente") === null, "getCardInfo deveria retornar null para ID inexistente");
@@ -230,17 +264,22 @@ async function main() {
   const dynamic = await testDynamicCard();
 
   testRequiredErrors();
+  await testUnsupportedFormats();
+
+  clearImageCache();
 
   console.log(JSON.stringify({
     ok: true,
     publicApi: REQUIRED_PUBLIC_API,
     forbiddenFactoriesHidden: true,
-    magick,
+    command,
+    renderer,
     formats,
     cards: cards.length,
     minimalCards,
     dynamic,
     png,
+    imageCache: getImageCacheStats(),
     svg: {
       bytes: Buffer.byteLength(String(svg))
     }

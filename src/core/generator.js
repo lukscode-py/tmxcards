@@ -6,7 +6,7 @@ const crypto = require("node:crypto");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const merge = require("../utils/merge");
-const { resolveMagickCommand } = require("./imagemagick");
+const { resolveRsvgCommand } = require("./rsvg");
 const { createSvg } = require("./svg");
 const { createCustomSvg } = require("./custom-templates");
 
@@ -21,50 +21,48 @@ const DEFAULT_CARD = {
   },
   output: {
     format: "png",
-    quality: 92,
     returnType: "file",
     outputPath: null,
     overwrite: true
-  },
-  optimization: {
-    stripMetadata: true,
-    compressionLevel: 7,
-    progressive: true
   }
 };
 
 const RETURN_TYPES = new Set(["file", "buffer", "base64"]);
+const SUPPORTED_FORMATS = new Set(["svg", "png"]);
 
 function exists(filePath) {
   return typeof filePath === "string" && filePath.length > 0 && fs.existsSync(filePath);
 }
 
 function normalizeFormat(format) {
-  const value = String(format || "png").trim().toLowerCase();
-  return value === "jpg" ? "jpeg" : value;
+  return String(format || "png").trim().toLowerCase();
+}
+
+function assertSupportedFormat(format) {
+  if (SUPPORTED_FORMATS.has(format)) return;
+
+  throw new Error(
+    `Formato não suportado pelo renderer atual: ${format}. ` +
+    `Use "svg" ou "png". PNG é convertido com rsvg-convert.`
+  );
 }
 
 function getExtension(format) {
-  if (format === "jpeg") return "jpg";
   if (format === "svg") return "svg";
+  if (format === "png") return "png";
   return format;
 }
 
 function getMime(format) {
   if (format === "svg") return "image/svg+xml";
-  if (format === "jpeg") return "image/jpeg";
-  return `image/${format}`;
+  if (format === "png") return "image/png";
+  return "application/octet-stream";
 }
 
-function clamp(value, min, max) {
+function toPositiveInteger(value, fallback) {
   const number = Number(value);
-  if (!Number.isFinite(number)) return min;
-  return Math.max(min, Math.min(max, number));
-}
-
-function toNumber(value, fallback) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
+  if (!Number.isFinite(number) || number <= 0) return fallback;
+  return Math.max(1, Math.round(number));
 }
 
 function createTempName(tmpDir, label, extension = "tmp") {
@@ -72,8 +70,8 @@ function createTempName(tmpDir, label, extension = "tmp") {
   return path.join(tmpDir, `${label}-${id}.${extension}`);
 }
 
-async function runMagick(args) {
-  const command = resolveMagickCommand();
+async function runRsvg(args) {
+  const command = resolveRsvgCommand();
 
   try {
     await execFileAsync(command, args, {
@@ -81,106 +79,8 @@ async function runMagick(args) {
     });
   } catch (error) {
     const detail = [error.stderr, error.stdout, error.message].filter(Boolean).join("\n");
-    throw new Error(`ImageMagick falhou.\nComando: ${command} ${args.join(" ")}\n${detail}`);
+    throw new Error(`rsvg-convert falhou.\nComando: ${command} ${args.join(" ")}\n${detail}`);
   }
-}
-
-async function prepareMediaForSvg(media, tmpDir, label) {
-  if (!media || media.enabled === false || !exists(media.path)) return media;
-
-  const width = toNumber(media.width || media.size, 160);
-  const height = toNumber(media.height || media.size, width);
-  const shape = media.shape;
-  const radius = toNumber(media.radius, shape === "circle" ? Math.min(width, height) / 2 : 0);
-
-  if (width <= 0 || height <= 0) return media;
-
-  const resized = createTempName(tmpDir, `${label}-resized`, "png");
-  const prepared = createTempName(tmpDir, `${label}-prepared`, "png");
-
-  await runMagick([
-    media.path,
-    "-auto-orient",
-    "-resize",
-    `${width}x${height}^`,
-    "-gravity",
-    "center",
-    "-extent",
-    `${width}x${height}`,
-    `PNG32:${resized}`
-  ]);
-
-  if (shape !== "circle" && radius <= 0) {
-    return {
-      ...media,
-      width,
-      height,
-      path: resized,
-      __tmxcardsPrepared: true,
-      __tmxcardsOriginalShape: shape,
-      __tmxcardsOriginalRadius: radius
-    };
-  }
-
-  const mask = createTempName(tmpDir, `${label}-mask`, "png");
-
-  if (shape === "circle") {
-    const cx = Math.round(width / 2);
-    const cy = Math.round(height / 2);
-    const edgeY = Math.max(0, cy - Math.round(Math.min(width, height) / 2));
-
-    await runMagick([
-      "-size",
-      `${width}x${height}`,
-      "xc:none",
-      "-fill",
-      "white",
-      "-draw",
-      `circle ${cx},${cy} ${cx},${edgeY}`,
-      `PNG32:${mask}`
-    ]);
-  } else {
-    await runMagick([
-      "-size",
-      `${width}x${height}`,
-      "xc:none",
-      "-fill",
-      "white",
-      "-draw",
-      `roundrectangle 0,0 ${width - 1},${height - 1} ${radius},${radius}`,
-      `PNG32:${mask}`
-    ]);
-  }
-
-  await runMagick([
-    resized,
-    mask,
-    "-alpha",
-    "Off",
-    "-compose",
-    "CopyOpacity",
-    "-composite",
-    `PNG32:${prepared}`
-  ]);
-
-  return {
-    ...media,
-    width,
-    height,
-    path: prepared,
-    __tmxcardsPrepared: true,
-    __tmxcardsOriginalShape: shape,
-    __tmxcardsOriginalRadius: radius
-  };
-}
-
-async function prepareCardMedia(card, tmpDir) {
-  return {
-    ...card,
-    logo: await prepareMediaForSvg(card.logo, tmpDir, "logo"),
-    avatar: await prepareMediaForSvg(card.avatar, tmpDir, "avatar"),
-    thumbnail: await prepareMediaForSvg(card.thumbnail, tmpDir, "thumbnail")
-  };
 }
 
 function resolveOutputPath(outputConfig, format) {
@@ -188,6 +88,10 @@ function resolveOutputPath(outputConfig, format) {
 
   if (outputConfig.outputPath) {
     return path.resolve(outputConfig.outputPath);
+  }
+
+  if (outputConfig.path) {
+    return path.resolve(outputConfig.path);
   }
 
   return path.resolve(process.cwd(), "out", `tmxcards-${Date.now()}.${extension}`);
@@ -249,45 +153,13 @@ async function outputRawContent(content, card, format) {
   };
 }
 
-async function convertSvg(svgPath, card, tmpDir, format) {
+async function outputConvertedFile(finalPath, card, format) {
   const outputConfig = card.output || {};
-  const optimization = card.optimization || {};
   const returnType = outputConfig.returnType || "file";
 
   if (!RETURN_TYPES.has(returnType)) {
     throw new Error(`returnType inválido: ${returnType}. Use file, buffer ou base64.`);
   }
-
-  const finalPath = returnType === "file"
-    ? resolveOutputPath(outputConfig, format)
-    : createTempName(tmpDir, "output", getExtension(format));
-
-  if (returnType === "file" && exists(finalPath) && outputConfig.overwrite === false) {
-    throw new Error(`Arquivo já existe e overwrite=false: ${finalPath}`);
-  }
-
-  await fsp.mkdir(path.dirname(finalPath), { recursive: true });
-
-  const args = [svgPath];
-
-  if (optimization.stripMetadata !== false) {
-    args.push("-strip");
-  }
-
-  if (format === "png" && optimization.compressionLevel !== undefined) {
-    args.push("-define", `png:compression-level=${clamp(optimization.compressionLevel, 0, 9)}`);
-  }
-
-  if (format === "jpeg" && optimization.progressive !== false) {
-    args.push("-interlace", "Plane");
-  }
-
-  if (outputConfig.quality !== undefined) {
-    args.push("-quality", String(clamp(outputConfig.quality, 1, 100)));
-  }
-
-  args.push(`${format}:${finalPath}`);
-  await runMagick(args);
 
   if (returnType === "file") {
     const stat = await fsp.stat(finalPath);
@@ -331,23 +203,61 @@ async function convertSvg(svgPath, card, tmpDir, format) {
   };
 }
 
+async function convertSvgToPng(svgPath, card, tmpDir) {
+  const outputConfig = card.output || {};
+  const returnType = outputConfig.returnType || "file";
+  const finalPath = returnType === "file"
+    ? resolveOutputPath(outputConfig, "png")
+    : createTempName(tmpDir, "output", "png");
+
+  if (returnType === "file" && exists(finalPath) && outputConfig.overwrite === false) {
+    throw new Error(`Arquivo já existe e overwrite=false: ${finalPath}`);
+  }
+
+  await fsp.mkdir(path.dirname(finalPath), { recursive: true });
+
+  const args = [
+    "-u",
+    "-f",
+    "png",
+    "-w",
+    String(toPositiveInteger(card.width, 800)),
+    "-h",
+    String(toPositiveInteger(card.height, 320)),
+    "-o",
+    finalPath,
+    svgPath
+  ];
+
+  if (outputConfig.backgroundColor) {
+    args.splice(1, 0, "-b", String(outputConfig.backgroundColor));
+  }
+
+  await runRsvg(args);
+
+  return outputConvertedFile(finalPath, card, "png");
+}
+
 async function renderCard(config = {}, options = {}) {
   const card = merge(merge(DEFAULT_CARD, config), options);
   const outputConfig = card.output || {};
   const format = normalizeFormat(outputConfig.format);
+
+  assertSupportedFormat(format);
+
   const tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), "tmxcards-"));
 
   try {
-    const svgCard = await prepareCardMedia(card, tmpDir);
-    const svg = createCustomSvg(svgCard) || createSvg(svgCard);
+    const svg = createCustomSvg(card) || createSvg(card);
 
     if (format === "svg") {
-      return await outputRawContent(svg, svgCard, format);
+      return await outputRawContent(svg, card, format);
     }
 
     const svgPath = createTempName(tmpDir, "input", "svg");
     await fsp.writeFile(svgPath, svg);
-    return await convertSvg(svgPath, svgCard, tmpDir, format);
+
+    return await convertSvgToPng(svgPath, card, tmpDir);
   } finally {
     if (!card.output || card.output.keepTemp !== true) {
       await fsp.rm(tmpDir, { recursive: true, force: true });

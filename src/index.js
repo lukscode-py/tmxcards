@@ -1,11 +1,11 @@
-const { resolveMagickCommand, getSupportedFormats, getRendererInfo } = require("./core/imagemagick");
+const { resolveRsvgCommand, getSupportedFormats, getRendererInfo } = require("./core/rsvg");
 const { renderCard } = require("./core/generator");
 const { createSvg } = require("./core/svg");
 const { createCard, listCards, getCardInfo } = require("./core/create-card");
 const { clearImageCache, getImageCacheStats } = require("./core/image-source");
 
 module.exports = {
-  resolveMagickCommand,
+  resolveRsvgCommand,
   getSupportedFormats,
   getRendererInfo,
   createSvg,
